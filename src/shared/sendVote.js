@@ -18,4 +18,5 @@ function sendVote(person_id, vote) {
     xhr.send(JSON.stringify(body));
 }
 
+
 self.sendVote = sendVote;
