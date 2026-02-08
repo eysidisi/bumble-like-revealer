@@ -12,9 +12,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 function renderEncounters() {
     getEncounters((encounters) => {
-        // Clear existing list
         list.innerHTML = '';
-        console.log('rendering')
         encounters.forEach(encounter => {
             const li = renderEncounter(encounter);
             list.appendChild(li);
@@ -23,7 +21,7 @@ function renderEncounters() {
 }
 
 chrome.runtime.onMessage.addListener((message) => {
-    if (message.type === 'refresh_encounters') {
+    if (message?.channel === CHANNEL && message.type === MESSAGE_TYPES.REFRESH_ENCOUNTERS) {
         renderEncounters();
     }
 });

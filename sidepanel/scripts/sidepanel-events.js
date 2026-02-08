@@ -43,13 +43,29 @@ function setupEvents(list, toggleButton, expandAllBtn) {
         if (event.target.classList.contains('swipe-left-btn')) {
             if (confirm('Are you sure to swipe left?')) {
                 const personId = event.target.getAttribute('data-person-id');
-                chrome.runtime.sendMessage({ type: 'send_vote', person_id: personId, vote: 3 });
+                chrome.runtime.sendMessage({
+                    channel: CHANNEL,
+                    type: MESSAGE_TYPES.SIDEPANEL_COMMAND,
+                    payload: {
+                        command: COMMANDS.SEND_VOTE,
+                        person_id: personId,
+                        vote: VoteCode.DISLIKED
+                    }
+                });
             }
         }
         if (event.target.classList.contains('swipe-right-btn')) {
             if (confirm('Are you sure to swipe right?')) {
                 const personId = event.target.getAttribute('data-person-id');
-                chrome.runtime.sendMessage({ type: 'send_vote', person_id: personId, vote: 2 });
+                chrome.runtime.sendMessage({
+                    channel: CHANNEL,
+                    type: MESSAGE_TYPES.SIDEPANEL_COMMAND,
+                    payload: {
+                        command: COMMANDS.SEND_VOTE,
+                        person_id: personId,
+                        vote: VoteCode.LIKED
+                    }
+                });
             }
         }
     });

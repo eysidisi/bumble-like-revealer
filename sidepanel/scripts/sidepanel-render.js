@@ -5,6 +5,10 @@ function renderEncounter(encounter) {
     nameSpan.textContent = (encounter?.name || 'Unknown') + ' ';
     li.appendChild(nameSpan);
 
+    const detailsButton = document.createElement('button');
+    detailsButton.textContent = 'Details';
+    li.appendChild(detailsButton);
+
     const swipeLeftButton = document.createElement('button');
     swipeLeftButton.textContent = 'Swipe Left';
     swipeLeftButton.className = 'swipe-left-btn';
@@ -17,10 +21,6 @@ function renderEncounter(encounter) {
     swipeRightButton.setAttribute('data-person-id', encounter?.user_id || '');
     li.appendChild(swipeRightButton);
 
-    const detailsButton = document.createElement('button');
-    detailsButton.textContent = 'Details';
-    li.appendChild(detailsButton);
-
     const detailsDiv = document.createElement('div');
     detailsDiv.className = 'details';
     detailsDiv.style.display = 'none';
@@ -32,7 +32,7 @@ function renderEncounter(encounter) {
 
     // Status
     const statusP = document.createElement('p');
-    statusP.textContent = `Status: ${encounter?.vote_status || 'Unknown'}`;
+    statusP.textContent = `Status: ${getEncounterVoteStatus(encounter)}`;
     detailsDiv.appendChild(statusP);
 
     // Photos button
@@ -75,12 +75,12 @@ function renderEncounter(encounter) {
         detailsButton.textContent = isVisible ? 'Details' : 'Hide';
     };
 
-    // Add color class based on vote status
-    if (encounter?.vote_status?.includes('Already swiped right')) {
+    const voteCode = getEncounterVoteCode(encounter);
+    if (voteCode === VoteCode.LIKED) {
         li.classList.add('liked');
-    } else if (encounter?.vote_status?.includes('Swiped left')) {
+    } else if (voteCode === VoteCode.DISLIKED) {
         li.classList.add('disliked');
-    } else if (encounter?.vote_status?.includes('Haven\'t seen')) {
+    } else if (voteCode === VoteCode.HAVENT_SEEN) {
         li.classList.add('not-seen');
     }
 

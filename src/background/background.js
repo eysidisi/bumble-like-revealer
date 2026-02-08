@@ -1,41 +1,119 @@
-importScripts('../shared/sendVote.js');
+importScripts('../shared/contracts.js');
 
-chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-    if (message.type === 'new_encounters') {
-        const newEncounters = message.encounters;
+const { CHANNEL, MESSAGE_TYPES, isContentEncounterMessage, isContentReadyMessage, isSidepanelCommandMessage } = self.BLR_CONTRACTS;
+const bumbleTabIdByWindowId = new Map();
 
-        // Get existing encounters
-        chrome.storage.local.get(['encounters'], (result) => {
-            const existing = result.encounters || [];
-            const existingIds = new Set(existing.map(enc => enc.user_id));
+function isBumbleAppUrl(url) {
+    return typeof url === 'string' && /^https:\/\/([^.]+\.)?bumble\.com\/app/i.test(url);
+}
 
-            // Filter new ones not already present
-            const uniqueNew = newEncounters.filter(enc => !existingIds.has(enc.user_id));
+function rememberBumbleTab(tab) {
+    if (!tab || typeof tab.id !== 'number' || typeof tab.windowId !== 'number') return;
+    if (!isBumbleAppUrl(tab.url)) return;
+    bumbleTabIdByWindowId.set(tab.windowId, tab.id);
+}
 
-            // Add with timestamp
-            const toAdd = uniqueNew.map(enc => ({
-                ...enc,
-                timestamp: Date.now(),
-                isNew: true
-            }));
+function forgetTab(tabId) {
+    for (const [windowId, storedTabId] of bumbleTabIdByWindowId.entries()) {
+        if (storedTabId === tabId) {
+            bumbleTabIdByWindowId.delete(windowId);
+        }
+    }
+}
 
-            // Combine and store
-            const updated = [...existing, ...toAdd];
-            chrome.storage.local.set({ encounters: updated });
+function mergeEncounters(newEncounters) {
+    chrome.storage.local.get(['encounters'], (result) => {
+        const existingEncounters = Array.isArray(result.encounters) ? result.encounters : [];
+        const existingIds = new Set(existingEncounters.map((encounter) => encounter.user_id));
 
-            // Notify side panel to refresh
-            chrome.runtime.sendMessage({ type: 'refresh_encounters' });
+        const uniqueNewEncounters = newEncounters.filter((encounter) => !existingIds.has(encounter.user_id));
+        const encountersToAdd = uniqueNewEncounters.map((encounter) => ({
+            ...encounter,
+            timestamp: Date.now(),
+            isNew: true
+        }));
+
+        const updatedEncounters = [...existingEncounters, ...encountersToAdd];
+        chrome.storage.local.set({ encounters: updatedEncounters }, () => {
+            chrome.runtime.sendMessage({
+                channel: CHANNEL,
+                type: MESSAGE_TYPES.REFRESH_ENCOUNTERS
+            });
         });
-    } else if (message.type === 'send_vote') {
-        chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-            const tab = tabs[0];
-            if (tab && tab.url.includes('bumble.com')) {
-                chrome.scripting.executeScript({
-                    target: { tabId: tab.id },
-                    function: self.sendVote,
-                    args: [message.person_id, message.vote]
-                });
+    });
+}
+
+function findTargetBumbleTabId(callback) {
+    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+        const activeTab = tabs.find((tab) => isBumbleAppUrl(tab.url));
+        if (activeTab) {
+            rememberBumbleTab(activeTab);
+            callback(activeTab.id);
+            return;
+        }
+
+        const currentWindowId = tabs[0]?.windowId;
+        const rememberedTabId = typeof currentWindowId === 'number' ? bumbleTabIdByWindowId.get(currentWindowId) : undefined;
+        if (typeof rememberedTabId === 'number') {
+            callback(rememberedTabId);
+            return;
+        }
+
+        chrome.tabs.query({}, (allTabs) => {
+            const fallbackTab = allTabs.find((tab) => isBumbleAppUrl(tab.url));
+            if (fallbackTab) {
+                rememberBumbleTab(fallbackTab);
+                callback(fallbackTab.id);
+                return;
             }
+
+            callback(null);
         });
+    });
+}
+
+function routeCommandToContentScript(payload) {
+    findTargetBumbleTabId((tabId) => {
+        if (typeof tabId !== 'number') return;
+
+        chrome.tabs.sendMessage(tabId, {
+            channel: CHANNEL,
+            type: MESSAGE_TYPES.BACKGROUND_TO_CONTENT_COMMAND,
+            payload
+        }, () => {
+            void chrome.runtime.lastError;
+        });
+    });
+}
+
+chrome.tabs.onRemoved.addListener((tabId) => {
+    forgetTab(tabId);
+});
+
+chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
+    if (typeof changeInfo.url === 'string') {
+        if (isBumbleAppUrl(changeInfo.url)) {
+            rememberBumbleTab({ ...tab, id: tabId, url: changeInfo.url });
+        } else {
+            forgetTab(tabId);
+        }
+    }
+});
+
+chrome.runtime.onMessage.addListener((message, sender) => {
+    if (isContentReadyMessage(message)) {
+        if (sender?.tab) rememberBumbleTab(sender.tab);
+        return;
+    }
+
+    if (isContentEncounterMessage(message)) {
+        const encounters = message.payload.encounters;
+        mergeEncounters(encounters);
+        if (sender?.tab) rememberBumbleTab(sender.tab);
+        return;
+    }
+
+    if (isSidepanelCommandMessage(message)) {
+        routeCommandToContentScript(message.payload);
     }
 });

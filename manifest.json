@@ -4,7 +4,6 @@
   "version": "0.1",
   "description": "Reveals if a Bumble user has already liked you based on 'their_vote'",
   "permissions": [
-    "scripting",
     "sidePanel",
     "storage"
   ],
@@ -15,8 +14,8 @@
     "default_title": "Open Bumble Revealer"
   },
   "host_permissions": [
-    "https://bumble.com/*",
-    "https://*.bumble.com/*"
+    "https://bumble.com/app*",
+    "https://*.bumble.com/app*"
   ],
   "background": {
     "service_worker": "src/background/background.js"
@@ -28,21 +27,16 @@
         "https://*.bumble.com/app*"
       ],
       "js": [
-        "src/content/content.js",
-        "src/shared/secure.js"
+        "src/shared/contracts.js",
+        "src/content/content.js"
       ],
-      "run_at": "document_idle"
+      "run_at": "document_start"
     }
   ],
   "web_accessible_resources": [
     {
       "resources": [
-        "src/injected/page.js",
-        "src/shared/models.js",
-        "src/shared/constants.js",
-        "src/shared/handlers.js",
-        "src/injected/patchFetch.js",
-        "src/injected/patchXMLHttpRequest.js"
+        "src/injected/bootstrap.js"
       ],
       "matches": [
         "https://bumble.com/*",

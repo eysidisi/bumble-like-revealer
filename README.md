@@ -1,33 +1,22 @@
-# Bumble Like Revealer - Project Status
+# Bumble Like Revealer
 
 ## Overview
-Chrome extension that intercepts Bumble API calls to reveal who has already liked you, bypassing the paywall.
+Chrome extension that intercepts Bumble encounter API responses and shows encounter details in a side panel.
 
-## Current Features
-- Intercepts Bumble API calls to capture encounter data and reveal vote statuses.
-- Stores encounters in chrome.storage.local with deduplication.
-- Displays encounters in a side panel UI, sorted by vote status (liked, not seen, disliked).
-- Shows detailed information including photos for each encounter.
-- Modular code structure with separate files for patches, handlers, models, and constants.
-- Vanilla HTML/CSS/JS side panel UI.
+## Architecture
+- **Background (`src/background/background.js`)**: single storage owner and message router.
+- **Content script (`src/content/content.js`)**: strict bridge between page world and extension runtime.
+- **Injected page bootstrap (`src/injected/bootstrap.js`)**: encounter interception + Bumble command execution.
+- **Shared contracts (`src/shared/contracts.js`)**: message types, command types, vote codes, and validators.
+- **Sidepanel (`sidepanel/`)**: rendering and user actions only.
 
-## File Structure
-- `manifest.json`: Extension manifest with permissions and resources.
-- `sidepanel.html`, `sidepanel.js`, `sidepanel.css`: Side panel UI for displaying encounters.
-- `src/content.js`: Content script that injects page.js into Bumble pages.
-- `src/page.js`: Main injected script that applies patches and handles data.
-- `src/constants.js`: API endpoints and constants.
-- `src/models.js`: Encounter class definition.
-- `src/handlers.js`: Functions for processing API responses.
-- `src/patchXMLHttpRequest.js`: Patch for XMLHttpRequest.
-- `src/patchFetch.js`: Patch for window.fetch (if present).
-- `src/secure.js`: Security-related utilities.
-- `src/background.js`: Service worker for background tasks.
+## Key Behavior
+- Intercepts encounter responses from Bumble page network traffic.
+- Deduplicates and stores encounters in `chrome.storage.local`.
+- Renders and sorts encounters by vote code in the side panel.
+- Sends swipe actions from side panel to background, then to the active Bumble tab via typed messages.
 
-## Status
-- Fully functional Chrome extension (MV3) with side panel interface.
-- Successfully intercepts Bumble API responses and extracts encounter data.
-- Stores and deduplicates encounters in local storage.
-- User-friendly UI for viewing encounters with expandable details and photo links.
-- Adheres to separation of concerns: UI, background, and injected scripts are isolated.
-- Ready for testing and potential deployment.
+## Notes
+- MV3 manifest with `document_start` content bridge and a single web-accessible injected entrypoint.
+- No background `executeScript` function injection path.
+- No content-script storage reset side effect.
