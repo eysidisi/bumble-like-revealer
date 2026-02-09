@@ -27,7 +27,7 @@
     });
 
     const ENCOUNTERS_ENDPOINT = 'SERVER_GET_ENCOUNTERS';
-    const BUMBLE_API_URL = 'https://sam1.bumble.com/mwebapi.phtml';
+    const BUMBLE_API_URL = 'https://am1.bumble.com/mwebapi.phtml';
     const DEFAULT_SECRET = 'whitetelevisionbulbelectionroofhorseflying';
 
     function normalizeVoteCode(voteCode) {
@@ -130,6 +130,99 @@
         };
     }
 
+    function sendBumbleRequest(endpoint, messageType, messageId, bodyData, onloadCallback) {
+        const body = {
+            $gpb: 'badoo.bma.BadooMessage',
+            body: [{ message_type: messageType, ...bodyData }],
+            message_id: messageId,
+            message_type: messageType,
+            version: 1,
+            is_background: false
+        };
+
+        const xPingback = calculateXPingback(body);
+        const xhr = new XMLHttpRequest();
+        xhr.open('POST', `${BUMBLE_API_URL}?${endpoint}`);
+        xhr.setRequestHeader('x-message-type', messageType.toString());
+        xhr.setRequestHeader('x-pingback', xPingback);
+        xhr.onload = () => onloadCallback(xhr);
+        xhr.send(JSON.stringify(body));
+    }
+
+    function sendVote(personId, vote) {
+        sendBumbleRequest(
+            'SERVER_ENCOUNTERS_VOTE',
+            80,
+            46,
+            {
+                server_encounters_vote: {
+                    person_id: personId,
+                    vote,
+                    vote_source: 1,
+                    game_mode: 0
+                }
+            },
+            (xhr) => {
+                const direction = Number(vote) === 2 ? 'right' : 'left';
+                console.log(`Swipe ${direction} response:`, xhr.responseText);
+            }
+        );
+    }
+
+    function getUser(personId) {
+        sendBumbleRequest(
+            'SERVER_GET_USER',
+            81,
+            47,
+            { server_get_user: { person_id: personId } },
+            (xhr) => {
+                console.log(`Get user response for ${personId}:`, xhr.responseText);
+            }
+        );
+    }
+
+    function getUserList() {
+        sendBumbleRequest(
+            'SERVER_GET_USER_LIST',
+            245,
+            12,
+            {
+                server_get_user_list: {
+                    filter: [8],
+                    filter_match_mode: [0],
+                    folder_id: 6,
+                    user_field_filter: { projection: [210, 662, 670, 200, 890, 230, 490, 340, 291, 763] },
+                    preferred_count: 21
+                }
+            },
+            (xhr) => {
+                console.log('Get user list response:', xhr.responseText);
+            }
+        );
+    }
+
+    function onContentCommand(event) {
+        if (event.source !== root) return;
+
+        const data = event.data;
+        if (!data || data.channel !== CHANNEL || data.type !== MESSAGE_TYPES.CONTENT_TO_PAGE_COMMAND) return;
+        if (!data.payload || typeof data.payload.command !== 'string') return;
+
+        const command = data.payload.command;
+        if (command === COMMANDS.SEND_VOTE) {
+            sendVote(data.payload.person_id, data.payload.vote);
+            return;
+        }
+        if (command === COMMANDS.GET_USER) {
+            getUser(data.payload.person_id);
+            return;
+        }
+        if (command === COMMANDS.GET_USER_LIST) {
+            getUserList();
+        }
+    }
+
+    //#region pingback calculation
     function rotl(value, bits) {
         return (value << bits) | (value >>> (32 - bits));
     }
@@ -307,109 +400,12 @@
             return String(value);
         }
     }
-
     function calculateXPingback(payload) {
         const normalizedPayload = payload || {};
         const serialized = safeSerialize(normalizedPayload);
         return md5Hex(`${serialized}${DEFAULT_SECRET}`);
     }
-
-    function sendBumbleRequest(endpoint, messageType, messageId, bodyData, onloadCallback) {
-        const body = {
-            $gpb: 'badoo.bma.BadooMessage',
-            body: [{ message_type: messageType, ...bodyData }],
-            message_id: messageId,
-            message_type: messageType,
-            version: 1,
-            is_background: false
-        };
-
-        const xPingback = calculateXPingback(body);
-        const xhr = new XMLHttpRequest();
-        xhr.open('POST', `${BUMBLE_API_URL}?${endpoint}`);
-        xhr.setRequestHeader('accept', '*/*');
-        xhr.setRequestHeader('accept-language', 'en-IE,en;q=0.9,tr-TR;q=0.8,tr;q=0.7,en-US;q=0.6,en-GB;q=0.5');
-        xhr.setRequestHeader('content-type', 'application/json');
-        xhr.setRequestHeader('priority', 'u=1, i');
-        xhr.setRequestHeader('x-message-type', messageType.toString());
-        xhr.setRequestHeader('x-pingback', xPingback);
-        xhr.setRequestHeader('x-use-session-cookie', '1');
-        xhr.onload = () => onloadCallback(xhr);
-        xhr.send(JSON.stringify(body));
-    }
-
-    function sendVote(personId, vote) {
-        sendBumbleRequest(
-            'SERVER_ENCOUNTERS_VOTE',
-            80,
-            46,
-            {
-                server_encounters_vote: {
-                    person_id: personId,
-                    vote,
-                    vote_source: 1,
-                    game_mode: 0
-                }
-            },
-            (xhr) => {
-                const direction = Number(vote) === 2 ? 'right' : 'left';
-                console.log(`Swipe ${direction} response:`, xhr.responseText);
-            }
-        );
-    }
-
-    function getUser(personId) {
-        sendBumbleRequest(
-            'SERVER_GET_USER',
-            81,
-            47,
-            { server_get_user: { person_id: personId } },
-            (xhr) => {
-                console.log(`Get user response for ${personId}:`, xhr.responseText);
-            }
-        );
-    }
-
-    function getUserList() {
-        sendBumbleRequest(
-            'SERVER_GET_USER_LIST',
-            245,
-            12,
-            {
-                server_get_user_list: {
-                    filter: [8],
-                    filter_match_mode: [0],
-                    folder_id: 6,
-                    user_field_filter: { projection: [210, 662, 670, 200, 890, 230, 490, 340, 291, 763] },
-                    preferred_count: 21
-                }
-            },
-            (xhr) => {
-                console.log('Get user list response:', xhr.responseText);
-            }
-        );
-    }
-
-    function onContentCommand(event) {
-        if (event.source !== root) return;
-
-        const data = event.data;
-        if (!data || data.channel !== CHANNEL || data.type !== MESSAGE_TYPES.CONTENT_TO_PAGE_COMMAND) return;
-        if (!data.payload || typeof data.payload.command !== 'string') return;
-
-        const command = data.payload.command;
-        if (command === COMMANDS.SEND_VOTE) {
-            sendVote(data.payload.person_id, data.payload.vote);
-            return;
-        }
-        if (command === COMMANDS.GET_USER) {
-            getUser(data.payload.person_id);
-            return;
-        }
-        if (command === COMMANDS.GET_USER_LIST) {
-            getUserList();
-        }
-    }
+//#endregion
 
     root.addEventListener('message', onContentCommand);
     patchFetch();
