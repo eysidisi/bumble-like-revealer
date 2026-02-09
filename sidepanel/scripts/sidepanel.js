@@ -4,8 +4,9 @@ document.addEventListener('DOMContentLoaded', () => {
     list = document.getElementById('encounter-list');
     const toggleButton = document.getElementById('toggle-list');
     const expandAllBtn = document.getElementById('expand-all');
+    const getLikersBtn = document.getElementById('get-likers');
 
-    setupEvents(list, toggleButton, expandAllBtn);
+    setupEvents(list, toggleButton, expandAllBtn, getLikersBtn);
 
     renderEncounters();
 });

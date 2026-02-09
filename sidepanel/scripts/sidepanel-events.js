@@ -1,4 +1,4 @@
-function setupEvents(list, toggleButton, expandAllBtn) {
+function setupEvents(list, toggleButton, expandAllBtn, getLikersBtn) {
     let isCollapsed = false;
 
     toggleButton.addEventListener('click', () => {
@@ -36,6 +36,16 @@ function setupEvents(list, toggleButton, expandAllBtn) {
         buttons.forEach(btn => {
             if (btn.textContent === 'Details') btn.textContent = 'Hide';
             if (btn.textContent === 'Photos') btn.textContent = 'Hide Photos';
+        });
+    });
+
+    getLikersBtn.addEventListener('click', () => {
+        chrome.runtime.sendMessage({
+            channel: CHANNEL,
+            type: MESSAGE_TYPES.SIDEPANEL_COMMAND,
+            payload: {
+                command: COMMANDS.GET_USER_LIST
+            }
         });
     });
 
