@@ -43,6 +43,15 @@ function mergeEncounters(newEncounters) {
     });
 }
 
+function resetEncounters() {
+    chrome.storage.local.set({ encounters: [] }, () => {
+        chrome.runtime.sendMessage({
+            channel: CHANNEL,
+            type: MESSAGE_TYPES.REFRESH_ENCOUNTERS
+        });
+    });
+}
+
 function findTargetBumbleTabId(callback) {
     chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
         const activeTab = tabs.find((tab) => isBumbleAppUrl(tab.url));
@@ -102,6 +111,9 @@ chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
 
 chrome.runtime.onMessage.addListener((message, sender) => {
     if (isContentReadyMessage(message)) {
+        if (message?.payload?.isReload === true) {
+            resetEncounters();
+        }
         if (sender?.tab) rememberBumbleTab(sender.tab);
         return;
     }

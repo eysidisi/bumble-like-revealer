@@ -27,7 +27,7 @@
     });
 
     const ENCOUNTERS_ENDPOINT = 'SERVER_GET_ENCOUNTERS';
-    const BUMBLE_API_URL = 'https://sam1.bumble.com/mwebapi.phtml';
+    const BUMBLE_API_URL = 'https://am1.bumble.com/mwebapi.phtml';
     const DEFAULT_SECRET = 'whitetelevisionbulbelectionroofhorseflying';
 
     function normalizeVoteCode(voteCode) {

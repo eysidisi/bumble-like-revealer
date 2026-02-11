@@ -41,10 +41,15 @@
     }
 
     function announceContentReady() {
+        const navigationEntry = performance.getEntriesByType('navigation')[0];
+        const isReload = navigationEntry?.type === 'reload';
         chrome.runtime.sendMessage({
             channel: CHANNEL,
             type: MESSAGE_TYPES.CONTENT_READY,
-            payload: { url: window.location.href }
+            payload: {
+                url: window.location.href,
+                isReload
+            }
         });
     }
 
