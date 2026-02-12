@@ -1,4 +1,4 @@
-function setupEvents(list, toggleButton, expandAllBtn) {
+function setupEvents(list, toggleButton, expandAllBtn, sendMessageUserIdInput, sendHiButton) {
     let isCollapsed = false;
 
     toggleButton.addEventListener('click', () => {
@@ -69,4 +69,21 @@ function setupEvents(list, toggleButton, expandAllBtn) {
             }
         }
     });
+
+    if (sendHiButton && sendMessageUserIdInput) {
+        sendHiButton.addEventListener('click', () => {
+            const personId = (sendMessageUserIdInput.value || '').trim();
+            if (!personId) return;
+
+            chrome.runtime.sendMessage({
+                channel: CHANNEL,
+                type: MESSAGE_TYPES.SIDEPANEL_COMMAND,
+                payload: {
+                    command: COMMANDS.SEND_MESSAGE,
+                    person_id: personId,
+                    text: 'hi'
+                }
+            });
+        });
+    }
 }

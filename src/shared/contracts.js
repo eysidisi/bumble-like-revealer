@@ -13,6 +13,7 @@
 
     const COMMANDS = Object.freeze({
         SEND_VOTE: 'send_vote',
+        SEND_MESSAGE: 'send_message',
         GET_USER: 'get_user',
         GET_USER_LIST: 'get_user_list'
     });

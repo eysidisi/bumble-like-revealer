@@ -57,6 +57,27 @@ h1 {
     margin: 0;
 }
 
+.send-message-section {
+    margin-top: 20px;
+}
+
+.send-message-section h2 {
+    margin: 0 0 10px 0;
+    font-size: 1.1em;
+}
+
+.send-message-controls {
+    display: flex;
+    gap: 10px;
+}
+
+.send-message-controls input {
+    flex: 1;
+    border: none;
+    border-radius: 10px;
+    padding: 8px 10px;
+}
+
 .encounter-list li {
     background: rgba(255, 255, 255, 0.2);
     margin-bottom: 10px;

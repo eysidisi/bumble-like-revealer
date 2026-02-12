@@ -9,6 +9,7 @@
     });
     const COMMANDS = Object.freeze({
         SEND_VOTE: 'send_vote',
+        SEND_MESSAGE: 'send_message',
         GET_USER: 'get_user',
         GET_USER_LIST: 'get_user_list'
     });
@@ -358,6 +359,58 @@
         );
     }
 
+    function getCookieValue(name) {
+        const cookies = document.cookie ? document.cookie.split('; ') : [];
+        for (let i = 0; i < cookies.length; i += 1) {
+            const parts = cookies[i].split('=');
+            const key = parts.shift();
+            if (key === name) {
+                return parts.join('=');
+            }
+        }
+        return '';
+    }
+
+    function getCurrentUserId() {
+        const rawUserId = getCookieValue('HDR-X-User-id');
+        if (!rawUserId) return '';
+        try {
+            return decodeURIComponent(rawUserId);
+        } catch (error) {
+            return rawUserId;
+        }
+    }
+
+    function sendMessage(toPersonId, text) {
+        const normalizedToPersonId = typeof toPersonId === 'string' ? toPersonId.trim() : '';
+        const normalizedText = typeof text === 'string' ? text : '';
+        const fromPersonId = getCurrentUserId();
+
+        if (!normalizedToPersonId || !normalizedText || !fromPersonId) {
+            console.warn('Send message skipped: missing to_person_id, message text, or from_person_id.');
+            return;
+        }
+
+        sendBumbleRequest(
+            'SERVER_SEND_CHAT_MESSAGE',
+            104,
+            14,
+            {
+                chat_message: {
+                    mssg: normalizedText,
+                    message_type: 1,
+                    uid: Date.now().toString(),
+                    from_person_id: fromPersonId,
+                    to_person_id: normalizedToPersonId,
+                    read: false
+                }
+            },
+            (xhr) => {
+                console.log(`Send message response for ${normalizedToPersonId}:`, xhr.responseText);
+            }
+        );
+    }
+
     function getUser(personId) {
         sendBumbleRequest(
             'SERVER_GET_USER',
@@ -400,6 +453,10 @@
         const command = data.payload.command;
         if (command === COMMANDS.SEND_VOTE) {
             sendVote(data.payload.person_id, data.payload.vote);
+            return;
+        }
+        if (command === COMMANDS.SEND_MESSAGE) {
+            sendMessage(data.payload.person_id, data.payload.text);
             return;
         }
         if (command === COMMANDS.GET_USER) {
