@@ -14,6 +14,8 @@
     const COMMANDS = Object.freeze({
         SEND_VOTE: 'send_vote',
         SEND_MESSAGE: 'send_message',
+        SAVE_SEARCH_SETTINGS: 'save_search_settings',
+        GET_ENCOUNTERS_PAGED: 'get_encounters_paged',
         GET_USER: 'get_user',
         GET_USER_LIST: 'get_user_list'
     });

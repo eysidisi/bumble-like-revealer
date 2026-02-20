@@ -10,6 +10,8 @@
     const COMMANDS = Object.freeze({
         SEND_VOTE: 'send_vote',
         SEND_MESSAGE: 'send_message',
+        SAVE_SEARCH_SETTINGS: 'save_search_settings',
+        GET_ENCOUNTERS_PAGED: 'get_encounters_paged',
         GET_USER: 'get_user',
         GET_USER_LIST: 'get_user_list'
     });
@@ -30,6 +32,9 @@
     const ENCOUNTERS_ENDPOINT = 'SERVER_GET_ENCOUNTERS';
     const BUMBLE_API_URL = 'https://am1.bumble.com/mwebapi.phtml';
     const DEFAULT_SECRET = 'whitetelevisionbulbelectionroofhorseflying';
+    let lastEncounterPersonId = '';
+    const fetchedEncounterIdsById = Object.create(null);
+    const usedLastPersonIdsById = Object.create(null);
 
     function normalizeVoteCode(voteCode) {
         if (voteCode === VOTE_CODES.HAVENT_SEEN || voteCode === VOTE_CODES.LIKED || voteCode === VOTE_CODES.DISLIKED) {
@@ -73,6 +78,19 @@
     function handleEncounters(json) {
         const results = json?.body?.[0]?.client_encounters?.results;
         if (!Array.isArray(results)) return;
+
+        results.forEach((result) => {
+            const userId = result?.user?.user_id || '';
+            if (userId) {
+                fetchedEncounterIdsById[userId] = true;
+            }
+        });
+
+        const lastEncounter = results[results.length - 1];
+        const capturedLastPersonId = lastEncounter?.user?.user_id || '';
+        if (capturedLastPersonId) {
+            lastEncounterPersonId = capturedLastPersonId;
+        }
 
         const encounters = results.map(toEncounter);
         emitEncounterEvent(encounters);
@@ -359,6 +377,70 @@
         );
     }
 
+    function resolveLastPersonId(inputLastPersonId) {
+        const manualLastPersonId = typeof inputLastPersonId === 'string' ? inputLastPersonId.trim() : '';
+        const candidateLastPersonId = manualLastPersonId || lastEncounterPersonId;
+        if (!candidateLastPersonId) return '';
+
+        if (!usedLastPersonIdsById[candidateLastPersonId]) {
+            return candidateLastPersonId;
+        }
+
+        const fetchedEncounterIds = Object.keys(fetchedEncounterIdsById);
+        for (let i = 0; i < fetchedEncounterIds.length; i += 1) {
+            const fetchedId = fetchedEncounterIds[i];
+            if (!usedLastPersonIdsById[fetchedId]) {
+                return fetchedId;
+            }
+        }
+
+        for (let i = 0; i < fetchedEncounterIds.length; i += 1) {
+            const fetchedId = fetchedEncounterIds[i];
+            if (fetchedId !== candidateLastPersonId) {
+                return fetchedId;
+            }
+        }
+
+        return candidateLastPersonId;
+    }
+
+    function getPagedEncounters(inputLastPersonId) {
+        const effectiveLastPersonId = resolveLastPersonId(inputLastPersonId);
+
+        const serverGetEncounters = {
+            number: 10,
+            context: 1,
+            user_field_filter: {
+                projection: [210, 370, 200, 230, 490, 540, 530, 560, 291, 732, 890, 930, 662, 570, 380, 493, 1140, 1150, 1160, 1161],
+                request_albums: [
+                    { album_type: 7 },
+                    { album_type: 12, external_provider: 12, count: 8 }
+                ],
+                game_mode: 0,
+                request_music_services: {
+                    top_artists_limit: 8,
+                    supported_services: [29],
+                    preview_image_size: { width: 120, height: 120 }
+                }
+            }
+        };
+
+        if (effectiveLastPersonId) {
+            serverGetEncounters.last_person_id = effectiveLastPersonId;
+            usedLastPersonIdsById[effectiveLastPersonId] = true;
+        }
+
+        sendBumbleRequest(
+            'SERVER_GET_ENCOUNTERS',
+            81,
+            effectiveLastPersonId ? 16 : 24,
+            { server_get_encounters: serverGetEncounters },
+            (xhr) => {
+                console.log('Last Person\'s id:', effectiveLastPersonId);
+            }
+        );
+    }
+
     function getCookieValue(name) {
         const cookies = document.cookie ? document.cookie.split('; ') : [];
         for (let i = 0; i < cookies.length; i += 1) {
@@ -411,6 +493,49 @@
         );
     }
 
+    function toOptionalInteger(value) {
+        const parsed = Number.parseInt(value, 10);
+        if (!Number.isFinite(parsed)) return null;
+        return parsed;
+    }
+
+    function saveSearchSettings(ageMin, ageMax, verifiedProfilesOnly) {
+        const settings = {
+            gender: [2],
+            age: { start: 40, end: 45 },
+            distance: { end: 161 }
+        };
+
+        const normalizedAgeMin = toOptionalInteger(ageMin);
+        const normalizedAgeMax = toOptionalInteger(ageMax);
+
+        if (normalizedAgeMin !== null) settings.age.start = normalizedAgeMin;
+        if (normalizedAgeMax !== null) settings.age.end = normalizedAgeMax;
+        settings.verified_profiles_only = {
+            id: 'lifestyle_verified',
+            options: [{ id: '1', selected: verifiedProfilesOnly === true }]
+        };
+
+        const serverSaveSearchSettings = {
+            context_type: 1,
+            context: 25,
+            settings,
+            game_mode: 0
+        };
+
+        console.log('Save search settings payload:', serverSaveSearchSettings);
+
+        sendBumbleRequest(
+            'SERVER_SAVE_SEARCH_SETTINGS',
+            503,
+            22,
+            { server_save_search_settings: serverSaveSearchSettings },
+            (xhr) => {
+                console.log('Save search settings response:', xhr.responseText);
+            }
+        );
+    }
+
     function getUser(personId) {
         sendBumbleRequest(
             'SERVER_GET_USER',
@@ -457,6 +582,18 @@
         }
         if (command === COMMANDS.SEND_MESSAGE) {
             sendMessage(data.payload.person_id, data.payload.text);
+            return;
+        }
+        if (command === COMMANDS.SAVE_SEARCH_SETTINGS) {
+            saveSearchSettings(
+                data.payload.age_min,
+                data.payload.age_max,
+                data.payload.verified_profiles_only
+            );
+            return;
+        }
+        if (command === COMMANDS.GET_ENCOUNTERS_PAGED) {
+            getPagedEncounters(data.payload.last_person_id);
             return;
         }
         if (command === COMMANDS.GET_USER) {

@@ -1,8 +1,10 @@
 function renderEncounter(encounter) {
     const li = document.createElement('li');
+    const parsedAge = Number.parseInt(encounter?.age, 10);
+    const ageLabel = Number.isFinite(parsedAge) && parsedAge > 0 ? parsedAge : 'N/A';
 
     const nameSpan = document.createElement('span');
-    nameSpan.textContent = (encounter?.name || 'Unknown') + ' ';
+    nameSpan.textContent = `${encounter?.name || 'Unknown'} (${ageLabel}) `;
     li.appendChild(nameSpan);
 
     const detailsButton = document.createElement('button');
@@ -29,6 +31,11 @@ function renderEncounter(encounter) {
     const idP = document.createElement('p');
     idP.textContent = `ID: ${encounter?.user_id || 'N/A'}`;
     detailsDiv.appendChild(idP);
+
+    // Age
+    const ageP = document.createElement('p');
+    ageP.textContent = `Age: ${ageLabel}`;
+    detailsDiv.appendChild(ageP);
 
     // Status
     const statusP = document.createElement('p');

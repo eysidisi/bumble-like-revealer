@@ -8,14 +8,39 @@
 </head>
 <body>
     <div class="container">
-        <h1>Encounters <button id="toggle-list" class="toggle-btn">Collapse</button> 
-            <button id="expand-all" class="toggle-btn">Expand All</button></h1>
+        <h1>Encounters <span id="encounters-count">(0)</span> <button id="toggle-list" class="toggle-btn">Collapse</button> 
+            <button id="expand-all" class="toggle-btn">Expand All</button>
+            <button id="sort-encounters" class="toggle-btn">Sort: Name</button>
+            <button id="like-all" class="toggle-btn">Like All</button>
+            <button id="dislike-all" class="toggle-btn">Dislike All</button></h1>
         <ul id="encounter-list" class="encounter-list"></ul>
         <div class="send-message-section">
             <h2>Send Message</h2>
             <div class="send-message-controls">
                 <input id="send-message-user-id" type="text" placeholder="Enter userId">
                 <button id="send-hi-btn" class="toggle-btn">Send Hi</button>
+            </div>
+        </div>
+        <div class="send-message-section">
+            <h2>Paged Encounters</h2>
+            <div class="send-message-controls">
+                <input id="paged-last-person-id-input" type="text" placeholder="Optional last person id">
+                <button id="fetch-paged-encounters-btn" class="toggle-btn">Fetch Next</button>
+                <button id="auto-fetch-encounters-btn" class="toggle-btn">Start Auto Fetch</button>
+            </div>
+        </div>
+        <div class="height-section">
+            <h2>Search Settings</h2>
+            <div class="height-controls">
+                <input id="age-min-input" class="height-input" type="number" step="1" inputmode="numeric" placeholder="Min">
+                <input id="age-max-input" class="height-input" type="number" step="1" inputmode="numeric" placeholder="Max">
+            </div>
+            <label class="verified-profiles-control">
+                <input id="verified-profiles-only-input" type="checkbox">
+                Verified profiles only
+            </label>
+            <div class="height-controls">
+                <button id="save-search-settings-btn" class="toggle-btn">Save Search Settings</button>
             </div>
         </div>
     </div>

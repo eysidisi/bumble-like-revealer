@@ -78,6 +78,35 @@ h1 {
     padding: 8px 10px;
 }
 
+.height-section {
+    margin-top: 20px;
+}
+
+.height-section h2 {
+    margin: 0 0 10px 0;
+    font-size: 1.1em;
+}
+
+.height-controls {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+.height-input {
+    width: 70px;
+    border: none;
+    border-radius: 10px;
+    padding: 8px 10px;
+}
+
+.verified-profiles-control {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 10px;
+}
+
 .encounter-list li {
     background: rgba(255, 255, 255, 0.2);
     margin-bottom: 10px;
